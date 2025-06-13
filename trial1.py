@@ -79,7 +79,7 @@ def load_data():
         detik_files = []
         
         # First, read detik-1.csv to get the column structure
-        df1_first = pd.read_csv("~/Downloads/detik-1.csv", encoding='utf-8')
+        df1_first = pd.read_csv("detik-1.csv", encoding='utf-8')
         detik_files.append(df1_first)
         
         # Get column names from the first file
@@ -88,7 +88,7 @@ def load_data():
         # Read the remaining files (detik-2.csv to detik-5.csv)
         for i in range(2, 6):  # Files 2 through 5
             try:
-                file_path = f"~/Downloads/detik-{i}.csv"
+                file_path = f"detik-{i}.csv"
                 df_temp = pd.read_csv(file_path, encoding='utf-8')
                 
                 # Only keep columns that exist in the first file
@@ -121,7 +121,7 @@ def load_data():
             df1 = pd.DataFrame()
         
         # Read df2 (detik2.csv remains the same)
-        df2 = pd.read_csv("~/Downloads/detik2.csv", encoding='utf-8')
+        df2 = pd.read_csv("detik2.csv", encoding='utf-8')
         
         # Process df1 (User Login data)
         # Convert date format to string (exactly like in your original code)
@@ -963,7 +963,7 @@ header_col1, header_col2 = st.columns([1, 6])
 with header_col1:
     # Load and display the logo
     try:
-        logo_path = "~/Downloads/detiklogo.png"
+        logo_path = "detiklogo.png"
         # Expand the tilde to full path
         import os
         logo_path = os.path.expanduser(logo_path)
