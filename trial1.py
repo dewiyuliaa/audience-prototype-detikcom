@@ -258,7 +258,7 @@ st.markdown("""
 @st.cache_data
 def load_data():
     try:
-        # Load and combine multiple detik CSV files (detik-1.csv to detik-5.csv)
+        # Load and combine multiple detik CSV files (detik-1.csv to detik-50.csv)
         detik_files = []
         
         # First, read detik-1.csv to get the column structure
@@ -268,8 +268,11 @@ def load_data():
         # Get column names from the first file
         expected_columns = df1_first.columns.tolist()
         
-        # Read the remaining files (detik-2.csv to detik-5.csv)
-        for i in range(2, 6):  # Files 2 through 5
+        # Read the remaining files (detik-2.csv to detik-50.csv)
+        # Adjust the range as needed - change 51 to whatever your max file number is + 1
+        files_loaded = 1  # We already loaded detik-1.csv
+        
+        for i in range(2, 101):  # Files 2 through 50 (adjust as needed)
             try:
                 file_path = f"detik-{i}.csv"
                 df_temp = pd.read_csv(file_path, encoding='utf-8')
@@ -287,12 +290,21 @@ def load_data():
                 df_temp_filtered = df_temp_filtered[expected_columns]
                 
                 detik_files.append(df_temp_filtered)
+                files_loaded += 1
+                
+                # Show progress every 5 files to avoid too many messages
+                if files_loaded % 5 == 0:
+                    st.info(f"Loaded {files_loaded} files so far... (latest: detik-{i}.csv)")
                 
             except FileNotFoundError:
-                st.warning(f"detik-{i}.csv not found, skipping...")
+                # Only show warnings for first few missing files to avoid spam
+                if i <= 10:
+                    st.warning(f"detik-{i}.csv not found, skipping...")
                 continue
             except Exception as e:
-                st.warning(f"Error loading detik-{i}.csv: {e}")
+                # Only show errors for first few files to avoid spam
+                if files_loaded <= 10:
+                    st.warning(f"Error loading detik-{i}.csv: {e}")
                 continue
         
         # Combine all dataframes
