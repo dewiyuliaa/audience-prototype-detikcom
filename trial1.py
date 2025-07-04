@@ -317,7 +317,14 @@ def load_data():
         df2 = pd.read_csv("detik2.csv", encoding='utf-8')
         
         # Process df1 (User Login data)
-        df1['date'] = pd.to_datetime(df1['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
+        if not df1.empty and 'date' in df1.columns:
+            try:
+                df1['date'] = pd.to_datetime(df1['date'], format='%Y%m%d', errors='coerce').dt.strftime('%Y-%m-%d')
+                # Remove rows with invalid dates
+                df1 = df1.dropna(subset=['date'])
+            except Exception as e:
+                st.error(f"Error processing dates in df1: {e}")
+                return None, None
         
         # Add age_group column
         def safe_age_to_group(age_value):
@@ -396,7 +403,14 @@ def load_data():
             df2['kanal_group'] = "Other"
         
         # Process df2 (User Non Login data)
-        df2['date'] = pd.to_datetime(df2['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
+        if not df2.empty and 'date' in df2.columns:
+            try:
+                df2['date'] = pd.to_datetime(df2['date'], format='%Y%m%d', errors='coerce').dt.strftime('%Y-%m-%d')
+                # Remove rows with invalid dates
+                df2 = df2.dropna(subset=['date'])
+            except Exception as e:
+                st.error(f"Error processing dates in df2: {e}")
+                return None, None
         
         if 'Gender' in df2.columns:
             df2['sex'] = df2['Gender'].str.lower()
