@@ -292,10 +292,6 @@ def load_data():
                 detik_files.append(df_temp_filtered)
                 files_loaded += 1
                 
-                # Show progress every 5 files to avoid too many messages
-                if files_loaded % 5 == 0:
-                    st.info(f"Loaded {files_loaded} files so far... (latest: detik-{i}.csv)")
-                
             except FileNotFoundError:
                 # Silently skip missing files
                 continue
