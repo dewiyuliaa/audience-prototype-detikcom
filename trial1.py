@@ -341,55 +341,65 @@ def load_data():
         
         df1['age_group'] = df1['age'].apply(safe_age_to_group)
         
-        # Define kanal_group function based on page URL
+        # Define kanal_group function
         def categorize_kanal(kanalid):
             if pd.isna(kanalid):
                 return "Other"
             
-            kanalid_str = str(kanalid).strip()
+            kanalid_str = str(kanalid)
             
-            # Kanal ID mapping based on your list
-            kanal_mapping = {
-                "2-605": "detikNews",
-                "2-1908": "detikJabar", 
-                "2-1911": "detikBali",
-                "2-1996": "detikHikmah",
-                "2-1910": "detikSumut",
-                "2-1909": "detikSulsel",
-                "2-69": "detikSport",
-                "2-1893": "detikJatim",
-                "2-105": "detikInet",
-                "2-2092": "detikJogja",
-                "2-1870": "detikEdu",
-                "2-1024": "detikTravel",
-                "2-284": "detikFood",
-                "2-835": "Wolipop",
-                "2-3": "detikFinance",
-                "2-1884": "detikJateng",
-                "2-638": "detikOto",
-                "2-2047": "detikProperti",
-                "2-755": "detikHealth",
-                "2-2026": "detikSumbagsel",
-                "2-2175": "detikKalimantan",
-                "2-207": "detikHot",
-                "2-2109": "detikPop"
-            }
-    
-            return kanal_mapping.get(kanalid_str, "Other")
+            if kanalid_str.startswith("2-605"):
+                return "detikNews"
+            elif kanalid_str.startswith("2-1908"):
+                return "detikJabar"
+            elif kanalid_str.startswith("2-1911"):
+                return "detikBali"
+            elif kanalid_str.startswith("2-1996"):
+                return "detikHikmah"
+            elif kanalid_str.startswith("2-1910"):
+                return "detikSumut"
+            elif kanalid_str.startswith("2-1909"):
+                return "detikSulsel"
+            elif kanalid_str.startswith("2-69"):
+                return "detikSport"
+            elif kanalid_str.startswith("2-1893"):
+                return "detikJatim"
+            elif kanalid_str.startswith("2-105"):
+                return "detikInet"
+            elif kanalid_str.startswith("2-2092"):
+                return "detikJogja"
+            elif kanalid_str.startswith("2-1870"):
+                return "detikEdu"
+            elif kanalid_str.startswith("2-1024"):
+                return "detikTravel"
+            elif kanalid_str.startswith("2-284"):
+                return "detikFood"
+            elif kanalid_str.startswith("2-835"):
+                return "Wolipop"
+            elif kanalid_str.startswith("2-3"):
+                return "detikFinance"
+            elif kanalid_str.startswith("2-1884"):
+                return "detikJateng"
+            elif kanalid_str.startswith("2-638"):
+                return "detikOto"
+            elif kanalid_str.startswith("2-2047"):
+                return "detikProperti"
+            elif kanalid_str.startswith("2-755"):
+                return "detikHealth"
+            elif kanalid_str.startswith("2-2026"):
+                return "detikSumbagsel"
+            elif kanalid_str.startswith("2-2175"):
+                return "detikKalimantan"
+            elif kanalid_str.startswith("2-207"):
+                return "detikHot"
+            elif kanalid_str.startswith("2-2109"):
+                return "detikPop"    
+            else:
+                return "Other"
         
-        # Apply kanal categorization to df1 (User Login Data)
-        if 'kanalid' in df1.columns:
-            df1['kanal_group'] = df1['kanalid'].apply(categorize_kanal)
-        else:
-            # If no kanalid column found, set all to "Other"
-            df1['kanal_group'] = "Other"
+        df1['kanal_group'] = df1['kanalid'].apply(categorize_kanal)
         
-        # Apply kanal categorization to df2 (User Non Login Data)
-        if 'Kanal ID' in df2.columns:
-            df2['kanal_group'] = df2['Kanal ID'].apply(categorize_kanal)
-        else:
-            # If no Kanal ID column found, set all to "Other"
-            df2['kanal_group'] = "Other"
+        df2['kanal_group'] = df2['Kanal ID'].apply(categorize_kanal)
         
         # Process df2 (User Non Login data)
         df2['date'] = pd.to_datetime(df2['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
