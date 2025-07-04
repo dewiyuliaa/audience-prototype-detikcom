@@ -9,7 +9,7 @@ import os
 
 # Function to load and encode logo
 def get_logo_base64():
-    """Load and encode the CNBC logo"""
+    """Load and encode the Detik logo"""
     try:
         logo_path = "detiklogo.png"
         expanded_path = os.path.expanduser(logo_path)
@@ -297,9 +297,7 @@ def load_data():
                     st.info(f"Loaded {files_loaded} files so far... (latest: detik-{i}.csv)")
                 
             except FileNotFoundError:
-                # Only show warnings for first few missing files to avoid spam
-                if i <= 10:
-                    st.warning(f"detik-{i}.csv not found, skipping...")
+                # Silently skip missing files
                 continue
             except Exception as e:
                 # Only show errors for first few files to avoid spam
@@ -1176,7 +1174,7 @@ try:
     if logo_base64:
         st.markdown(f"""
         <div class='main-header'>
-            <img src="data:image/png;base64,{logo_base64}" class="logo-img" alt="CNBC Logo">
+            <img src="data:image/png;base64,{logo_base64}" class="logo-img" alt="Detik Logo">
             <span>Audience Insight Dashboard</span>
         </div>
         """, unsafe_allow_html=True)
