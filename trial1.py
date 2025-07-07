@@ -456,8 +456,11 @@ def optimize_dataframe(df):
         
     original_memory = df.memory_usage(deep=True).sum() / 1024**2  # MB
     
+    # Columns that should NOT be converted to categorical (especially date columns)
+    exclude_from_categorical = ['date']
+    
     for col in df.columns:
-        if df[col].dtype == 'object':
+        if df[col].dtype == 'object' and col not in exclude_from_categorical:
             # Convert string columns to category if they have repetitive values
             unique_ratio = df[col].nunique() / len(df)
             if unique_ratio < 0.5:  # Less than 50% unique values
