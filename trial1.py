@@ -6,6 +6,7 @@ import datetime
 from datetime import timedelta
 import base64
 import os
+import gc
 
 # Function to load and encode logo
 def get_logo_base64():
@@ -258,7 +259,7 @@ st.markdown("""
 @st.cache_data
 def load_data():
     try:
-        # Load and combine multiple detik CSV files (detik-1.csv to detik-50.csv)
+        # Load and combine multiple detik CSV files (detik-1.csv to detik-30.csv)
         detik_files = []
         
         # First, read detik-1.csv to get the column structure
@@ -292,6 +293,9 @@ def load_data():
                 detik_files.append(df_temp_filtered)
                 files_loaded += 1
                 
+                # Clean up temporary dataframe from memory
+                del df_temp, df_temp_filtered
+                
             except FileNotFoundError:
                 # Silently skip missing files
                 continue
@@ -304,13 +308,28 @@ def load_data():
         # Combine all dataframes
         if detik_files:
             df1 = pd.concat(detik_files, ignore_index=True)
-            st.success(f"Successfully loaded {len(detik_files)} detik files with total {len(df1):,} rows")
+            
+            # MEMORY OPTIMIZATION: Optimize data types
+            df1 = optimize_dataframe(df1)
+            
+            # Clean up the list of files from memory
+            del detik_files
+            gc.collect()
+            
+            # Show success message (will be cached)
+            total_rows = len(df1)
+            if total_rows > 500000:
+                st.warning(f"⚠️ Large dataset detected: {total_rows:,} rows. Performance mode will be enabled automatically.")
+            else:
+                st.success(f"Successfully loaded {files_loaded} detik files with total {total_rows:,} rows")
+                
         else:
             st.error("No detik files found!")
             df1 = pd.DataFrame()
         
         # Read df2 (detik2.csv remains the same)
         df2 = pd.read_csv("detik2.csv", encoding='utf-8')
+        df2 = optimize_dataframe(df2)
         
         # Process df1 (User Login data)
         df1['date'] = pd.to_datetime(df1['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
@@ -419,11 +438,115 @@ def load_data():
         if 'Kanal ID' in df2.columns:
             df2['kanal_group'] = df2['Kanal ID'].apply(categorize_kanal)
         
+        # Final memory optimization
+        df1 = optimize_dataframe(df1)
+        df2 = optimize_dataframe(df2)
+        gc.collect()
+        
         return df1, df2
     
     except Exception as e:
         st.error(f"Error loading data: {e}")
         return None, None
+
+def optimize_dataframe(df):
+    """Optimize dataframe memory usage"""
+    if df.empty:
+        return df
+        
+    original_memory = df.memory_usage(deep=True).sum() / 1024**2  # MB
+    
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            # Convert string columns to category if they have repetitive values
+            unique_ratio = df[col].nunique() / len(df)
+            if unique_ratio < 0.5:  # Less than 50% unique values
+                df[col] = df[col].astype('category')
+        elif df[col].dtype == 'int64':
+            # Downcast integers
+            df[col] = pd.to_numeric(df[col], downcast='integer')
+        elif df[col].dtype == 'float64':
+            # Downcast floats
+            df[col] = pd.to_numeric(df[col], downcast='float')
+    
+    optimized_memory = df.memory_usage(deep=True).sum() / 1024**2  # MB
+    
+    return df
+
+# Add this function to handle large dataset filtering efficiently
+def apply_filters_efficiently(df, start_date_str, end_date_str, selected_cities, selected_age, 
+                            selected_genders, selected_kanal, selected_device, selected_categories,
+                            selected_aws, selected_paylater, user_login):
+    """Apply filters efficiently for large datasets"""
+    
+    # Use sampling for very large datasets during interactive filtering
+    if len(df) > 800000:  # If more than 800k rows
+        # Use a representative sample for fast UI response
+        sample_size = min(200000, len(df))
+        sample_df = df.sample(n=sample_size, random_state=42)
+        
+        # Apply filters to sample
+        filtered_sample = apply_basic_filters(sample_df, start_date_str, end_date_str, 
+                                            selected_cities, selected_age, selected_genders, 
+                                            selected_kanal, selected_device, selected_categories,
+                                            selected_aws, selected_paylater, user_login)
+        
+        # Calculate scale factor for accurate estimates
+        scale_factor = len(df) / len(sample_df) if len(sample_df) > 0 else 1
+        
+        # Show sampling notice
+        if not filtered_sample.empty:
+            estimated_total = len(filtered_sample) * scale_factor
+            st.info(f"🔄 Performance mode: Using sample of {len(filtered_sample):,} rows (estimated total: {estimated_total:,.0f} rows)")
+        
+        return filtered_sample, scale_factor
+    else:
+        # Process normally for smaller datasets
+        filtered_df = apply_basic_filters(df, start_date_str, end_date_str, 
+                                        selected_cities, selected_age, selected_genders, 
+                                        selected_kanal, selected_device, selected_categories,
+                                        selected_aws, selected_paylater, user_login)
+        return filtered_df, 1.0
+
+
+def apply_basic_filters(df, start_date_str, end_date_str, selected_cities, selected_age, 
+                       selected_genders, selected_kanal, selected_device, selected_categories,
+                       selected_aws, selected_paylater, user_login):
+    """Apply basic filters to dataframe"""
+    filtered_df = df.copy()
+    
+    # Apply date filter
+    filtered_df = filtered_df[(filtered_df['date'] >= start_date_str) & 
+                              (filtered_df['date'] <= end_date_str)]
+    
+    # Apply other filters
+    if selected_cities:
+        filtered_df = filtered_df[filtered_df['city'].isin(selected_cities)]
+    
+    if selected_age:
+        filtered_df = filtered_df[filtered_df['age_group'].isin(selected_age)]
+    
+    if selected_genders:
+        filtered_df = filtered_df[filtered_df['sex'].isin(selected_genders)]
+    
+    if selected_kanal:
+        filtered_df = filtered_df[filtered_df['kanal_group'].isin(selected_kanal)]
+    
+    if selected_device:
+        filtered_df = filtered_df[filtered_df['device_category'].isin(selected_device)]
+    
+    if selected_categories and 'categoryauto_new_rank1' in df.columns:
+        filtered_df = filtered_df[filtered_df['categoryauto_new_rank1'].isin(selected_categories)]
+    
+    # Apply User Login specific filters
+    if user_login:
+        if selected_aws and 'aws' in df.columns:
+            filtered_df = filtered_df[filtered_df['aws'].isin(selected_aws)]
+        
+        if selected_paylater and 'paylater_status' in df.columns:
+            filtered_df = filtered_df[filtered_df['paylater_status'].isin(selected_paylater)]
+    
+    return filtered_df
 
 def calculate_metrics(df, user_login=True):
     """Calculate all metrics from the dataframe"""
@@ -851,10 +974,20 @@ def get_filter_options(user_login):
         if len(categories_data) > 0:
             all_categories = sorted(categories_data.tolist())
     
-    min_date_str = current_df['date'].min()
-    max_date_str = current_df['date'].max()
-    min_date = datetime.datetime.strptime(min_date_str, '%Y-%m-%d').date()
-    max_date = datetime.datetime.strptime(max_date_str, '%Y-%m-%d').date()
+    # Handle date processing safely
+    try:
+        min_date_str = current_df['date'].min()
+        max_date_str = current_df['date'].max()
+        
+        if pd.isna(min_date_str) or pd.isna(max_date_str):
+            min_date = datetime.date.today()
+            max_date = datetime.date.today()
+        else:
+            min_date = datetime.datetime.strptime(min_date_str, '%Y-%m-%d').date()
+            max_date = datetime.datetime.strptime(max_date_str, '%Y-%m-%d').date()
+    except Exception as e:
+        min_date = datetime.date.today()
+        max_date = datetime.date.today()
     
     return {
         'cities': all_cities,
@@ -1080,50 +1213,49 @@ if st.sidebar.button("🔄 Reset Filters", use_container_width=True, type="secon
 
 # Apply filters to the dataframe
 current_df = df1 if st.session_state.user_login else df2
-filtered_df = current_df.copy()
 
 # Apply date filter
 start_date_str = start_date.strftime('%Y-%m-%d')
 end_date_str = end_date.strftime('%Y-%m-%d')
-filtered_df = filtered_df[(filtered_df['date'] >= start_date_str) & 
-                          (filtered_df['date'] <= end_date_str)]
 
-# Apply other filters
-if selected_cities:
-    filtered_df = filtered_df[filtered_df['city'].isin(selected_cities)]
+# Use efficient filtering for large datasets
+with st.spinner("Applying filters..."):
+    filtered_df, scale_factor = apply_filters_efficiently(
+        current_df, start_date_str, end_date_str, selected_cities, selected_age,
+        selected_genders, selected_kanal, selected_device, selected_categories,
+        selected_aws, selected_paylater, st.session_state.user_login
+    )
 
-if selected_age:
-    filtered_df = filtered_df[filtered_df['age_group'].isin(selected_age)]
-
-if selected_genders:
-    filtered_df = filtered_df[filtered_df['sex'].isin(selected_genders)]
-
-if selected_kanal:
-    filtered_df = filtered_df[filtered_df['kanal_group'].isin(selected_kanal)]
-
-if selected_device:
-    filtered_df = filtered_df[filtered_df['device_category'].isin(selected_device)]
-
-if selected_categories and 'categoryauto_new_rank1' in current_df.columns:
-    filtered_df = filtered_df[filtered_df['categoryauto_new_rank1'].isin(selected_categories)]
-
-# Apply User Login specific filters
-if st.session_state.user_login:
-    if selected_aws and 'aws' in current_df.columns:
-        filtered_df = filtered_df[filtered_df['aws'].isin(selected_aws)]
-    
-    if selected_paylater and 'paylater_status' in current_df.columns:
-        filtered_df = filtered_df[filtered_df['paylater_status'].isin(selected_paylater)]
-
-# Calculate metrics and growth
+# Calculate metrics (scale up if using sampling)
 filtered_metrics = calculate_metrics(filtered_df, st.session_state.user_login)
 
-# Get previous period data for growth calculation
-previous_period_df = get_previous_period_data(
-    current_df, start_date, end_date, selected_cities, selected_age,
-    selected_genders, selected_kanal, selected_device, selected_categories,
-    selected_aws, selected_paylater, st.session_state.user_login
-)
+# Scale up metrics if we used sampling
+if scale_factor > 1:
+    scaled_metrics = {}
+    for key, value in filtered_metrics.items():
+        if key in ['unique_users', 'unique_email', 'unique_phone', 'total_page_views']:
+            scaled_metrics[key] = int(value * scale_factor)
+        else:
+            scaled_metrics[key] = value  # Ratios don't need scaling
+    filtered_metrics = scaled_metrics
+
+# For growth calculations, use a smaller sample to avoid memory issues
+if len(current_df) > 500000:
+    # Use a sample for previous period calculation to avoid memory issues
+    sample_for_growth = min(100000, len(current_df))
+    current_sample = current_df.sample(n=sample_for_growth, random_state=42)
+    previous_period_df = get_previous_period_data(
+        current_sample, start_date, end_date, selected_cities, selected_age,
+        selected_genders, selected_kanal, selected_device, selected_categories,
+        selected_aws, selected_paylater, st.session_state.user_login
+    )
+else:
+    # Use full dataset for smaller datasets
+    previous_period_df = get_previous_period_data(
+        current_df, start_date, end_date, selected_cities, selected_age,
+        selected_genders, selected_kanal, selected_device, selected_categories,
+        selected_aws, selected_paylater, st.session_state.user_login
+    )
 
 # Calculate growth metrics
 growth_metrics = calculate_growth_metrics(filtered_df, previous_period_df, st.session_state.user_login)
