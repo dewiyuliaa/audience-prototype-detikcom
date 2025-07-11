@@ -9,9 +9,9 @@ import os
 
 # Function to load and encode logo
 def get_logo_base64():
-    """Load and encode the Detik logo"""
+    """Load and encode the CNBC logo"""
     try:
-        logo_path = "detiklogo.png"
+        logo_path = "CNBC_logo.svg.png"
         expanded_path = os.path.expanduser(logo_path)
         
         if os.path.exists(expanded_path):
@@ -258,59 +258,9 @@ st.markdown("""
 @st.cache_data
 def load_data():
     try:
-        # Load and combine multiple detik CSV files (detik-1.csv to detik-50.csv)
-        detik_files = []
-        
-        # First, read detik-1.csv to get the column structure
-        df1_first = pd.read_csv("detik-1.csv", encoding='utf-8')
-        detik_files.append(df1_first)
-        
-        # Get column names from the first file
-        expected_columns = df1_first.columns.tolist()
-        
-        # Read the remaining files (detik-2.csv to detik-50.csv)
-        # Adjust the range as needed - change 51 to whatever your max file number is + 1
-        files_loaded = 1  # We already loaded detik-1.csv
-        
-        for i in range(2, 101):  # Files 2 through 100 (adjust as needed)
-            try:
-                file_path = f"detik-{i}.csv"
-                df_temp = pd.read_csv(file_path, encoding='utf-8')
-                
-                # Only keep columns that exist in the first file
-                available_columns = [col for col in expected_columns if col in df_temp.columns]
-                df_temp_filtered = df_temp[available_columns]
-                
-                # Add missing columns with NaN values if any are missing
-                for col in expected_columns:
-                    if col not in df_temp_filtered.columns:
-                        df_temp_filtered[col] = None
-                
-                # Reorder columns to match the first file
-                df_temp_filtered = df_temp_filtered[expected_columns]
-                
-                detik_files.append(df_temp_filtered)
-                files_loaded += 1
-                
-            except FileNotFoundError:
-                # Silently skip missing files
-                continue
-            except Exception as e:
-                # Only show errors for first few files to avoid spam
-                if files_loaded <= 10:
-                    st.warning(f"Error loading detik-{i}.csv: {e}")
-                continue
-        
-        # Combine all dataframes
-        if detik_files:
-            df1 = pd.concat(detik_files, ignore_index=True)
-            st.success(f"Successfully loaded {len(detik_files)} detik files with total {len(df1):,} rows")
-        else:
-            st.error("No detik files found!")
-            df1 = pd.DataFrame()
-        
-        # Read df2 (detik2.csv remains the same)
-        df2 = pd.read_csv("detik2.csv", encoding='utf-8')
+        # Read the CSV files
+        df1 = pd.read_csv("cnbc(updated)2.csv", encoding='utf-8')
+        df2 = pd.read_csv("cnbc2(updated).csv", encoding='utf-8')
         
         # Process df1 (User Login data)
         df1['date'] = pd.to_datetime(df1['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
@@ -348,58 +298,30 @@ def load_data():
             
             kanalid_str = str(kanalid)
             
-            if kanalid_str.startswith("2-605"):
-                return "detikNews"
-            elif kanalid_str.startswith("2-1908"):
-                return "detikJabar"
-            elif kanalid_str.startswith("2-1911"):
-                return "detikBali"
-            elif kanalid_str.startswith("2-1996"):
-                return "detikHikmah"
-            elif kanalid_str.startswith("2-1910"):
-                return "detikSumut"
-            elif kanalid_str.startswith("2-1909"):
-                return "detikSulsel"
-            elif kanalid_str.startswith("2-69"):
-                return "detikSport"
-            elif kanalid_str.startswith("2-1893"):
-                return "detikJatim"
-            elif kanalid_str.startswith("2-105"):
-                return "detikInet"
-            elif kanalid_str.startswith("2-2092"):
-                return "detikJogja"
-            elif kanalid_str.startswith("2-1870"):
-                return "detikEdu"
-            elif kanalid_str.startswith("2-1024"):
-                return "detikTravel"
-            elif kanalid_str.startswith("2-284"):
-                return "detikFood"
-            elif kanalid_str.startswith("2-835"):
-                return "Wolipop"
-            elif kanalid_str.startswith("2-3"):
-                return "detikFinance"
-            elif kanalid_str.startswith("2-1884"):
-                return "detikJateng"
-            elif kanalid_str.startswith("2-638"):
-                return "detikOto"
-            elif kanalid_str.startswith("2-2047"):
-                return "detikProperti"
-            elif kanalid_str.startswith("2-755"):
-                return "detikHealth"
-            elif kanalid_str.startswith("2-2026"):
-                return "detikSumbagsel"
-            elif kanalid_str.startswith("2-2175"):
-                return "detikKalimantan"
-            elif kanalid_str.startswith("2-207"):
-                return "detikHot"
-            elif kanalid_str.startswith("2-2109"):
-                return "detikPop"    
+            if kanalid_str.startswith("2-3"):
+                return "News"
+            elif kanalid_str.startswith("2-5"):
+                return "Market"
+            elif kanalid_str.startswith("2-9"):
+                return "Entrepreneur"
+            elif kanalid_str.startswith("2-12"):
+                return "Tech"
+            elif kanalid_str.startswith("2-11"):
+                return "Lifestyle"
+            elif kanalid_str.startswith("2-10"):
+                return "Syariah"
+            elif kanalid_str.startswith("2-13"):
+                return "Opini"
+            elif kanalid_str.startswith("2-71"):
+                return "MyMoney"
+            elif kanalid_str.startswith("2-78"):
+                return "Cuap Cuap Cuan"
+            elif kanalid_str.startswith("2-127"):
+                return "Research"
             else:
                 return "Other"
         
         df1['kanal_group'] = df1['kanalid'].apply(categorize_kanal)
-        
-        df2['kanal_group'] = df2['Kanal ID'].apply(categorize_kanal)
         
         # Process df2 (User Non Login data)
         df2['date'] = pd.to_datetime(df2['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
@@ -1180,7 +1102,7 @@ try:
     if logo_base64:
         st.markdown(f"""
         <div class='main-header'>
-            <img src="data:image/png;base64,{logo_base64}" class="logo-img" alt="Detik Logo">
+            <img src="data:image/png;base64,{logo_base64}" class="logo-img" alt="CNBC Logo">
             <span>Audience Insight Dashboard</span>
         </div>
         """, unsafe_allow_html=True)
@@ -1277,8 +1199,7 @@ with col1:
                 
                 if 'phone_number' in contact_data.columns:
                     contact_data = contact_data.copy()
-                    # Clean phone numbers by keeping only digits, handle NaN values
-                    contact_data['phone_number'] = contact_data['phone_number'].astype(str).str.extract('(\d+)', expand=False)
+                    contact_data['phone_number'] = contact_data['phone_number'].astype('Int64').astype(str)
                 
                 contact_csv = contact_data.to_csv(index=False)
             else:
