@@ -1660,8 +1660,8 @@ if not filtered_df.empty:
         # Additional charts if there's kanal data
         if 'kanal_group' in filtered_df.columns and not filtered_df['kanal_group'].isna().all():
             st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-            
-            # Create kanal chart (exclude "Other" category)
+    
+    # Create kanal chart (exclude "Other" category)
             if st.session_state.user_login:
                 kanal_data = filtered_df[filtered_df['kanal_group'] != 'Other']['kanal_group'].value_counts()
             else:
@@ -1670,40 +1670,38 @@ if not filtered_df.empty:
                     kanal_data = filtered_df[filtered_df['kanal_group'] != 'Other'].groupby('kanal_group')['Total users'].sum()
                 else:
                     kanal_data = filtered_df[filtered_df['kanal_group'] != 'Other']['kanal_group'].value_counts()
-            
+    
             # Only show chart if there's data after excluding "Other"
             if len(kanal_data) > 0:
                 # Sort data from largest to smallest
                 kanal_data = kanal_data.sort_values(ascending=False)
-                
+        
                 # Calculate percentages
                 total = kanal_data.sum()
                 percentages = (kanal_data / total * 100) if total > 0 else kanal_data * 0
-                
+        
                 # Create the chart
                 kanal_fig = go.Figure()
-                
-                # Add bars with gradient effect
+        
+                # Add bars with gradient effect - FIXED VERSION
                 for i, (kanal, pct) in enumerate(zip(kanal_data.index, percentages)):
+                    # Ensure alpha value stays between 0.2 and 1.0
+                    alpha = max(0.2, 1 - i * 0.08)  # Use smaller decrement and minimum alpha
+            
                     kanal_fig.add_trace(go.Bar(
                         x=[kanal],
                         y=[pct],
                         marker=dict(
-                            color=f'rgba(245, 158, 11, {1 - i*0.1})',
+                            color=f'rgba(245, 158, 11, {alpha})',
                             cornerradius=4,
-                            line=dict(width=0),
-                            pattern=dict(
-                                shape='',
-                                bgcolor=f'rgba(245, 158, 11, 0.2)',
-                                fgcolor=f'rgba(245, 158, 11, {1 - i*0.05})'
-                            )
+                            line=dict(width=0)
                         ),
                         text=f'{pct:.1f}%',
                         textposition='outside',
                         hovertemplate=f'Kanal: {kanal}<br>Percentage: {pct:.1f}%<extra></extra>',
                         showlegend=False
                     ))
-                
+        
                 kanal_fig.update_layout(
                     xaxis_title="",
                     yaxis_title="Percentage",
@@ -1723,7 +1721,7 @@ if not filtered_df.empty:
                         griddash='dot'
                     )
                 )
-                
+        
                 st.markdown("<h3 style='margin: 0 0 10px 0; color: #374151; font-size: 16px;'>Kanal Groups</h3>", unsafe_allow_html=True)
                 st.plotly_chart(kanal_fig, use_container_width=True, key="kanal_groups_chart")
         
