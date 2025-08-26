@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+from google.cloud import bigquery
+from google.oauth2 import service_account
 import numpy as np
 import matplotlib.pyplot as plt
 import plotly.express as px
@@ -620,25 +622,22 @@ def create_device_chart(df, user_login=True):
 @st.cache_data
 def load_data():
     try:
-        # Read and combine files for df1
-        df1_part1 = pd.read_csv("detik-1.csv", encoding='utf-8')
-        df1_part2 = pd.read_csv("detik-2.csv", encoding='utf-8')
-        df1_part3 = pd.read_csv("detik-3.csv", encoding='utf-8')
-        df1_part4 = pd.read_csv("detik-4.csv", encoding='utf-8')
-        df1_part5 = pd.read_csv("detik-5.csv", encoding='utf-8')
-        df1_part6 = pd.read_csv("detik-6.csv", encoding='utf-8')
-        df1_part7 = pd.read_csv("detik-7.csv", encoding='utf-8')
-        df1_part8 = pd.read_csv("detik-8.csv", encoding='utf-8')
-        df1_part9 = pd.read_csv("detik-9.csv", encoding='utf-8')
-        df1_part10 = pd.read_csv("detik-10.csv", encoding='utf-8')
+        # === df1 langsung dari BigQuery ===
+        credentials = service_account.Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"]
+        )
+        client = bigquery.Client(credentials=credentials)
+
+        query_df1 = """
+        SELECT *
+        FROM `pm-data-217109.dewi_audience_poc.detik_lookup`
+        """
+        df1 = client.query(query_df1).to_dataframe()
         
         # Read and combine files for df2
         df2_part1 = pd.read_csv("detik2-1.csv", encoding='utf-8')
         df2_part2 = pd.read_csv("detik2-2.csv", encoding='utf-8')
         df2_part3 = pd.read_csv("detik2-3.csv", encoding='utf-8')
-
-        # Combine the df1 files
-        df1 = pd.concat([df1_part1, df1_part2, df1_part3, df1_part4, df1_part5, df1_part6, df1_part7, df1_part8, df1_part9, df1_part10], ignore_index=True)
         
         # Combine the df2 files
         df2 = pd.concat([df2_part1, df2_part2, df2_part3], ignore_index=True)
