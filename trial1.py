@@ -300,10 +300,10 @@ def create_trend_chart(filtered_df, user_login=True, days_to_show=30):
             daily_stats['total_pageviews'] = daily_stats['unique_users'] * 2
             
     else:
-        # For non-login data, use Total_users column if available
-        if 'Total_users' in trend_data.columns:
+        # For non-login data, use Total users column if available
+        if 'Total users' in trend_data.columns:
             daily_stats = trend_data.groupby('date').agg({
-                'Total_users': 'sum',
+                'Total users': 'sum',
                 'Views': 'sum' if 'Views' in trend_data.columns else 'count'
             }).reset_index()
             daily_stats.columns = ['date', 'unique_users', 'total_pageviews']
@@ -401,9 +401,9 @@ def create_city_chart(df, user_login=True):
         city_data = df['city'].value_counts().head(5)
     else:
         # For User Non Login, exclude "(not set)", get top 5 by total users, and sort by largest
-        if 'Total_users' in df.columns:
+        if 'Total users' in df.columns:
             filtered_cities = df[df['city'] != '(not set)']
-            city_data = filtered_cities.groupby('city')['Total_users'].sum().nlargest(5)
+            city_data = filtered_cities.groupby('city')['Total users'].sum().nlargest(5)
         else:
             filtered_cities = df[df['city'] != '(not set)']
             city_data = filtered_cities['city'].value_counts().head(5)
@@ -461,9 +461,9 @@ def create_age_chart(df, user_login=True):
     if user_login:
         age_data = df['age_group'].value_counts()
     else:
-        # For User Non Login, use Total_users for weighting
-        if 'Total_users' in df.columns:
-            age_data = df.groupby('age_group')['Total_users'].sum()
+        # For User Non Login, use Total users for weighting
+        if 'Total users' in df.columns:
+            age_data = df.groupby('age_group')['Total users'].sum()
         else:
             age_data = df['age_group'].value_counts()
     
@@ -529,9 +529,9 @@ def create_gender_chart(df, user_login=True):
     if user_login:
         gender_data = df['sex'].value_counts()
     else:
-        # For User Non Login, use Total_users for weighting
-        if 'Total_users' in df.columns:
-            gender_data = df.groupby('sex')['Total_users'].sum()
+        # For User Non Login, use Total users for weighting
+        if 'Total users' in df.columns:
+            gender_data = df.groupby('sex')['Total users'].sum()
         else:
             gender_data = df['sex'].value_counts()
     
@@ -571,9 +571,9 @@ def create_device_chart(df, user_login=True):
     if user_login:
         device_data = df['device_category'].value_counts()
     else:
-        # For User Non Login, use Total_users for weighting
-        if 'Total_users' in df.columns:
-            device_data = df.groupby('device_category')['Total_users'].sum()
+        # For User Non Login, use Total users for weighting
+        if 'Total users' in df.columns:
+            device_data = df.groupby('device_category')['Total users'].sum()
         else:
             device_data = df['device_category'].value_counts()
     
@@ -634,11 +634,13 @@ def load_data():
         """
         df1 = client.query(query_df1).to_dataframe()
         
-        query_df2 = """
-        SELECT *
-        FROM `pm-data-217109.dewi_audience_poc.detik_nonlogin`
-        """
-        df2 = client.query(query_df2).to_dataframe()
+        # Read and combine files for df2
+        df2_part1 = pd.read_csv("~/Downloads/detik2-1.csv", encoding='utf-8')
+        df2_part2 = pd.read_csv("~/Downloads/detik2-2.csv", encoding='utf-8')
+        df2_part3 = pd.read_csv("~/Downloads/detik2-3.csv", encoding='utf-8')
+        
+        # Combine the df2 files
+        df2 = pd.concat([df2_part1, df2_part2, df2_part3], ignore_index=True)
         
         # Process df1 (User Login data)
         df1['date'] = pd.to_datetime(df1['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
@@ -746,16 +748,16 @@ def load_data():
         if 'Age' in df2.columns:
             df2['age_group'] = df2['Age']
         
-        # Map Device_category for consistency
-        if 'Device_category' in df2.columns:
-            df2['device_category'] = df2['Device_category']
+        # Map Device category for consistency
+        if 'Device category' in df2.columns:
+            df2['device_category'] = df2['Device category']
         
         # Map City for consistency
         if 'City' in df2.columns:
             df2['city'] = df2['City']
         
-        # Map Kanal_ID and categorize with page check if available
-        if 'Kanal_ID' in df2.columns:
+        # Map Kanal ID and categorize with page check if available
+        if 'Kanal ID' in df2.columns:
             # Define the categorize_kanal function for df2 (User Non Login)
             def categorize_kanal_df2(kanalid):
                 if pd.isna(kanalid):
@@ -816,7 +818,7 @@ def load_data():
                     return "Other"
             
             # Apply kanal categorization for df2
-            df2['kanal_group'] = df2['Kanal_ID'].apply(categorize_kanal_df2)
+            df2['kanal_group'] = df2['Kanal ID'].apply(categorize_kanal_df2)
         
         return df1, df2
     
@@ -919,10 +921,10 @@ def get_filter_options(user_login):
         if user_login:
             top_cities = current_df['city'].value_counts().head(10).index.tolist()
         else:
-            # For User Non Login, exclude "(not set)" and use Total_users for weighting
-            if 'Total_users' in current_df.columns:
+            # For User Non Login, exclude "(not set)" and use Total users for weighting
+            if 'Total users' in current_df.columns:
                 filtered_cities = current_df[current_df['city'] != '(not set)']
-                top_cities = filtered_cities.groupby('city')['Total_users'].sum().nlargest(10).index.tolist()
+                top_cities = filtered_cities.groupby('city')['Total users'].sum().nlargest(10).index.tolist()
             else:
                 filtered_cities = current_df[current_df['city'] != '(not set)']
                 top_cities = filtered_cities['city'].value_counts().head(10).index.tolist()
@@ -1536,10 +1538,10 @@ if not filtered_df.empty:
                 unique_users = len(filtered_df)
                 daily_users = filtered_df.groupby('date').size()
         else:
-            # For User Non Login: use Total_users if available
-            if 'Total_users' in filtered_df.columns:
-                unique_users = filtered_df['Total_users'].sum()
-                daily_users = filtered_df.groupby('date')['Total_users'].sum()
+            # For User Non Login: use Total users if available
+            if 'Total users' in filtered_df.columns:
+                unique_users = filtered_df['Total users'].sum()
+                daily_users = filtered_df.groupby('date')['Total users'].sum()
             else:
                 unique_users = len(filtered_df)
                 daily_users = filtered_df.groupby('date').size()
@@ -1663,9 +1665,9 @@ if not filtered_df.empty:
             if st.session_state.user_login:
                 kanal_data = filtered_df[filtered_df['kanal_group'] != 'Other']['kanal_group'].value_counts()
             else:
-                # For User Non Login, use Total_users for weighting
-                if 'Total_users' in filtered_df.columns:
-                    kanal_data = filtered_df[filtered_df['kanal_group'] != 'Other'].groupby('kanal_group')['Total_users'].sum()
+                # For User Non Login, use Total users for weighting
+                if 'Total users' in filtered_df.columns:
+                    kanal_data = filtered_df[filtered_df['kanal_group'] != 'Other'].groupby('kanal_group')['Total users'].sum()
                 else:
                     kanal_data = filtered_df[filtered_df['kanal_group'] != 'Other']['kanal_group'].value_counts()
     
@@ -1788,9 +1790,9 @@ if not filtered_df.empty:
                 # For User Login: count unique users for each category
                 all_categories_data = filtered_df.groupby('categoryauto_new_rank1').size().sort_values(ascending=False)
             else:
-                # For User Non Login: use Total_users for weighting
-                if 'Total_users' in filtered_df.columns:
-                    all_categories_data = filtered_df.groupby('categoryauto_new_rank1')['Total_users'].sum().sort_values(ascending=False)
+                # For User Non Login: use Total users for weighting
+                if 'Total users' in filtered_df.columns:
+                    all_categories_data = filtered_df.groupby('categoryauto_new_rank1')['Total users'].sum().sort_values(ascending=False)
                 else:
                     all_categories_data = filtered_df.groupby('categoryauto_new_rank1').size().sort_values(ascending=False)
             
@@ -1855,9 +1857,9 @@ if not filtered_df.empty:
                 # For User Login: count unique users for each category
                 all_categories_data = filtered_df.groupby('categoryauto_new_rank1').size().sort_values(ascending=False)
             else:
-                # For User Non Login: use Total_users for weighting
-                if 'Total_users' in filtered_df.columns:
-                    all_categories_data = filtered_df.groupby('categoryauto_new_rank1')['Total_users'].sum().sort_values(ascending=False)
+                # For User Non Login: use Total users for weighting
+                if 'Total users' in filtered_df.columns:
+                    all_categories_data = filtered_df.groupby('categoryauto_new_rank1')['Total users'].sum().sort_values(ascending=False)
                 else:
                     all_categories_data = filtered_df.groupby('categoryauto_new_rank1').size().sort_values(ascending=False)
             
