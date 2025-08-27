@@ -1,5 +1,7 @@
 import streamlit as st
+import requests
 import pandas as pd
+import io
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import numpy as np
@@ -634,13 +636,12 @@ def load_data():
         """
         df1 = client.query(query_df1).to_dataframe()
         
-        # Read and combine files for df2
-        df2_part1 = pd.read_csv("detik2-1.csv", encoding='utf-8')
-        df2_part2 = pd.read_csv("detik2-2.csv", encoding='utf-8')
-        df2_part3 = pd.read_csv("detik2-3.csv", encoding='utf-8')
+        # === df2 langsung dari Google Sheets ===
+        sheet_url = "https://docs.google.com/spreadsheets/d/1MlBuuuz9b_Hf_uGNpDKQS-8kIoNxGm5sXh2gRpvhOdI/gviz/tq?tqx=out:csv&sheet=Sheet1"
+        resp = requests.get(sheet_url)
+        resp.raise_for_status()
         
-        # Combine the df2 files
-        df2 = pd.concat([df2_part1, df2_part2, df2_part3], ignore_index=True)
+        df2 = pd.read_csv(io.StringIO(resp.text))
         
         # Process df1 (User Login data)
         df1['date'] = pd.to_datetime(df1['date'], format='%Y%m%d').dt.strftime('%Y-%m-%d')
