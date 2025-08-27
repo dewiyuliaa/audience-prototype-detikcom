@@ -635,9 +635,9 @@ def load_data():
         df1 = client.query(query_df1).to_dataframe()
         
         # Read and combine files for df2
-        df2_part1 = pd.read_csv("~/Downloads/detik2-1.csv", encoding='utf-8')
-        df2_part2 = pd.read_csv("~/Downloads/detik2-2.csv", encoding='utf-8')
-        df2_part3 = pd.read_csv("~/Downloads/detik2-3.csv", encoding='utf-8')
+        df2_part1 = pd.read_csv("detik2-1.csv", encoding='utf-8')
+        df2_part2 = pd.read_csv("detik2-2.csv", encoding='utf-8')
+        df2_part3 = pd.read_csv("detik2-3.csv", encoding='utf-8')
         
         # Combine the df2 files
         df2 = pd.concat([df2_part1, df2_part2, df2_part3], ignore_index=True)
